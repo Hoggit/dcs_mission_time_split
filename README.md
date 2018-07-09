@@ -19,6 +19,18 @@ This does the following:
 6. Repeats steps 4-5 with 'midday' and 'evening' (1230 and 1930 respectively)
 7. Deletes the temporary directory.
 
+In the case of `my_miz_file.miz` being the mission file. You'll end up with the following directory structure
+
+```
+<root>
+    |
+    - my_miz_file.miz
+    - my_miz_file (Directory)
+       |
+       - my_miz_file-morning.miz
+       - my_miz_file-midday.miz
+       - my_miz_file-evening,miz
+```
 
 You can specify multiple miz files as arguments, and it will do the above steps for each miz file separately (finish with one, delete the tmp directory, then start the next).
 
