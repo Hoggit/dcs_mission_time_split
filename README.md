@@ -24,12 +24,12 @@ In the case of `my_miz_file.miz` being the mission file. You'll end up with the 
 ```
 <root>
     |
-    - my_miz_file.miz
     - my_miz_file (Directory)
        |
-       - my_miz_file-morning.miz
+       - my_miz_file-evening.miz
        - my_miz_file-midday.miz
-       - my_miz_file-evening,miz
+       - my_miz_file-morning.miz
+    - my_miz_file.miz
 ```
 
 You can specify multiple miz files as arguments, and it will do the above steps for each miz file separately (finish with one, delete the tmp directory, then start the next).
