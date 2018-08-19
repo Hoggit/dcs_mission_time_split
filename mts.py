@@ -3,24 +3,40 @@ import shutil
 import zipfile
 import os
 import sys
-import fileinput
 import re
 
 times = {
-    'morning': 23400,  # 06:30
-    'midday': 45000,  # 12:30
-    'evening': 70200  # 19:30
+    'morning': 19800,  # 05:30
+    'afternoon': 43200,  # 12:00
+    'evening': 72000,  # 20:00
+    'night': 7200  # 02:00
 }
 
 
-def change_mission_time(misFile, time):
+def change_mission_time(misFile, fn, descr, time):
     rgx = re.compile("^\s{4}\[\"start_time")
-    with fileinput.input(misFile, inplace=True) as fp:
-        for line in fp:
-            if rgx.match(line):
-                line = "    [\"start_time\"] = {},\n".format(time)
-            sys.stdout.write(line)
+    if descr == 'morning':
+        next_time = 'afternoon'
+    elif descr == 'afternoon':
+        next_time = 'evening'
+    elif descr == 'evening':
+        next_time = 'night'
+    elif descr == 'night':
+        next_time = 'morning'
 
+    next_file = "{0}_{1}.miz".format(fn[:-4], next_time)
+    this_file = "{0}_{1}.tmp".format(fn[:-4], descr)
+
+    with open(misFile) as fp:
+        with open(this_file, 'w') as tf:
+            for line in fp:
+                if fn in line:
+                    line = line.replace(fn, next_file)
+                if rgx.match(line):
+                    line = "    [\"start_time\"] = {},\n".format(time)
+                tf.write(line)
+
+    return this_file
 
 
 def handle_mission(fn):
@@ -44,13 +60,15 @@ def handle_mission(fn):
 
         new_files = []
         for descr, time in times.items():
-            change_mission_time(misfile, str(time))
-            new_file = "{}/{}-{}".format(
+            new_mis = change_mission_time(misfile, fn, descr, time)
+            new_file = "{}/{}_{}".format(
                 basedir,
                 fn[:-4],
                 descr
             )
-            shutil.make_archive(new_file, 'zip', targetdir)
+            shutil.copytree(targetdir, new_file)
+            shutil.move(new_mis, os.path.join(new_file, "mission"))
+            shutil.make_archive(new_file, 'zip', new_file)
             new_files.append(new_file)
 
         new_dir = "{}/{}".format(basedir, fn)[:-4]
@@ -63,6 +81,7 @@ def handle_mission(fn):
             filename = new_file+".zip"
             print("new_file: " + new_file)
             shutil.move(filename, new_dir+"/"+os.path.basename(new_file)+".miz")
+            shutil.rmtree(new_file)
 
         #Clean up tmp dir.
         shutil.rmtree(targetdir)
