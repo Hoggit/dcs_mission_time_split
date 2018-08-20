@@ -4,6 +4,8 @@ import zipfile
 import os
 import sys
 import re
+import requests
+from metar import Metar
 
 times = {
     'morning': 26400,  # 07:20
@@ -12,8 +14,10 @@ times = {
 }
 
 
-def change_mission_time(misFile, fn, descr, time):
+def change_mission_data(misFile, fn, descr, time, wx):
     rgx = re.compile("^\s{4}\[\"start_time")
+    wind_rgx = re.compile("^\s{16}\[\"speed")
+    wind_dir_rgx = re.compile("^\s{16}\[\"dir")
     if descr == 'morning':
         next_time = 'afternoon'
     elif descr == 'afternoon':
@@ -24,13 +28,36 @@ def change_mission_time(misFile, fn, descr, time):
         next_time = 'morning'
 
     next_file = "{0}_{1}.miz".format(fn[:-4], next_time)
-    this_file = "{0}_{1}.tmp".format(fn[:-4], descr)
+    this_file = "{0}_{1}.miz.tmp".format(fn[:-4], descr)
 
-    with open(misFile) as fp:
-        with open(this_file, 'w') as tf:
+    with open(misFile, encoding='utf-8') as fp:
+        in_fog = False
+        with open(this_file, 'w', encoding='utf-8') as tf:
             for line in fp:
+                if '["fog"]' in line:
+                    in_fog = True
+
+                if '-- end of ["fog"]' in line:
+                    in_fog = False
+
                 if fn in line:
                     line = line.replace(fn, next_file)
+                if not in_fog and '["thickness"]' in line:
+                    line = '            ["thickness"] = {},\n'.format(wx['cloud_height'])
+                if not in_fog and '["density"]' in line:
+                    line = '            ["density"] = {},\n'.format(wx['cloud_density'])
+                if '["base"]' in line:
+                    line = '            ["base"] = {},\n'.format(wx['cloud_base'])
+                if '["iprecptns"]' in line:
+                    line = '            ["iprecptns"] = {},\n'.format(wx['precip'])
+                if '["qnh"]' in line:
+                    line = '        ["qnh"] = {},\n'.format(max(760, wx['pressure']))
+                if '["temperature"]' in line:
+                    line = '            ["temperature"] = {},\n'.format(wx['temp'])
+                if wind_rgx.match(line):
+                    line = '                ["speed"] = {},\n'.format(wx['wind_speed'])
+                if wind_dir_rgx.match(line):
+                    line = '                ["dir"] = {},\n'.format(wx['wind_dir'])
                 if rgx.match(line):
                     line = "    [\"start_time\"] = {},\n".format(time)
                 tf.write(line)
@@ -38,7 +65,7 @@ def change_mission_time(misFile, fn, descr, time):
     return this_file
 
 
-def handle_mission(fn):
+def handle_mission(fn, dest, icao):
     if os.path.exists(fn):
         path = os.path.abspath(fn)
         print("path: {}".format(path))
@@ -57,9 +84,54 @@ def handle_mission(fn):
 
         misfile = "{}/mission".format(targetdir)
 
+        # Get WX
+        cloud_map = {
+            'FEW': 2,
+            'SCT': 6,
+            'BKN': 8,
+            'OVC': 10
+        }
+
+        wx = {
+            "temp": 23,
+            "wind_speed": 4,
+            "wind_dir": 170,
+            "cloud_base": 8000,
+            "cloud_height": 1800,
+            "cloud_density": 5,
+            "precip": 0,
+            "pressure": 760
+        }
+
+        wx_request = requests.get("https://avwx.rest/api/metar/" + icao)
+        if wx_request.status_code == 200:
+            wx_json = wx_request.json()
+            obs = Metar.Metar(wx_json['Raw-Report'])
+            precip = 0
+            if obs.weather:
+                if obs.weather[0][2] == 'RA':
+                    precip = 1
+                if obs.weather[0][1] == 'TS':
+                    precip = 2
+
+            wx['temp'] = obs.temp.value()
+            wx['wind_speed'] = obs.wind_speed.value() * 2
+            wx['wind_dir'] = obs.wind_dir.value()
+            if obs.sky and obs.sky[0] != 'CLR':
+                wx['cloud_base'] = obs.sky[0][1].value()
+                wx['cloud_height'] = 1800
+                wx['cloud_density'] = cloud_map[obs.sky[0][0]]
+                print("CLOUD COVERAGE IS {}".format(cloud_map[obs.sky[0][0]]))
+            else:
+                wx['cloud_base'] = 1800
+                wx['cloud_height'] = 1800
+                wx['cloud_density'] = 0
+            wx['precip'] = precip
+            wx['pressure'] = obs.press.value() / 1.33
+
         new_files = []
         for descr, time in times.items():
-            new_mis = change_mission_time(misfile, fn, descr, time)
+            new_mis = change_mission_data(misfile, fn, descr, time, wx)
             new_file = "{}/{}_{}".format(
                 basedir,
                 fn[:-4],
@@ -79,13 +151,15 @@ def handle_mission(fn):
         for new_file in new_files:
             filename = new_file+".zip"
             print("new_file: " + new_file)
-            shutil.move(filename, new_dir+"/"+os.path.basename(new_file)+".miz")
+            shutil.move(filename, dest + "/" + os.path.basename(new_file)+".miz")
             shutil.rmtree(new_file)
 
         #Clean up tmp dir.
         shutil.rmtree(targetdir)
 
-files = sys.argv[1:]
 
-for filename in files:
-    handle_mission(filename)
+file = sys.argv[1]
+icao = sys.argv[2]
+dest = sys.argv[3] or None
+
+handle_mission(file, dest, icao)
