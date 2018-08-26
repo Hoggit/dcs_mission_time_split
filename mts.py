@@ -105,34 +105,39 @@ def handle_mission(fn, dest, icao):
 
         wx_request = requests.get("https://avwx.rest/api/metar/" + icao.upper())
         if wx_request.status_code == 200:
-            wx_json = wx_request.json()
-            obs = Metar.Metar(wx_json['Raw-Report'])
-            #obs = Metar.Metar("URKK 211400Z 33004MPS 290V360 CAVOK 30/18 Q1011 R23L/CLRD70 NOSIG RMK QFE755")
-            precip = 0
-            if obs.weather:
-                if obs.weather[0][2] == 'RA':
-                    precip = 1
-                if obs.weather[0][1] == 'TS':
-                    precip = 2
+            try:
+                wx_json = wx_request.json()
+                obs = Metar.Metar(wx_json['Raw-Report'])
+                #obs = Metar.Metar("URKK 211400Z 33004MPS 290V360 CAVOK 30/18 Q1011 R23L/CLRD70 NOSIG RMK QFE755")
+                precip = 0
+                if obs.weather:
+                    if obs.weather[0][2] == 'RA':
+                        precip = 1
+                    if obs.weather[0][1] == 'TS':
+                        precip = 2
 
-            wx['temp'] = obs.temp.value()
-            wx['wind_speed'] = obs.wind_speed.value()
-            wx['wind_dir'] = obs.wind_dir.value()
-            if obs.sky and obs.sky[0] != 'CLR' and obs.sky[0][0] != 'NCD':
-                wx['cloud_base'] = obs.sky[0][1].value()
-                wx['cloud_height'] = 1800
-                wx['cloud_density'] = cloud_map[obs.sky[0][0]]
-                print("CLOUD COVERAGE IS {}".format(cloud_map[obs.sky[0][0]]))
-            else:
-                wx['cloud_base'] = 1800
-                wx['cloud_height'] = 1800
-                wx['cloud_density'] = 0
-            wx['precip'] = precip
-            wx['pressure'] = obs.press.value() / 1.33
+                wx['temp'] = obs.temp.value()
+                wx['wind_speed'] = obs.wind_speed.value()
+                wx['wind_dir'] = obs.wind_dir.value()
+                if obs.sky and obs.sky[0] != 'CLR' and obs.sky[0][0] != 'NCD':
+                    wx['cloud_base'] = obs.sky[0][1].value()
+                    wx['cloud_height'] = 1800
+                    wx['cloud_density'] = cloud_map[obs.sky[0][0]]
+                    print("CLOUD COVERAGE IS {}".format(cloud_map[obs.sky[0][0]]))
+                else:
+                    wx['cloud_base'] = 1800
+                    wx['cloud_height'] = 1800
+                    wx['cloud_density'] = 0
+                wx['precip'] = precip
+                wx['pressure'] = obs.press.value() / 1.33
 
-            print(obs.string())
+                print(obs.string())
+            except Exception as e:
+                print(e)
+                print("FAILED TO GET DYNAMIC WEATHER, FALLING BACK TO DEFAULTS")
+
         else:
-            print("FAILED TO GET DYNAMIC WEATHER, FALLING BACK TO DEFAULTS")
+            print("FAILED TO GET DYNAMIC WEATHER, FALLING BACK TO DEFAULTS - METAR API unavailable")
 
         new_files = []
         for descr, time in times.items():
