@@ -6,10 +6,9 @@ import sys
 import re
 
 times = {
-    'morning': 19800,  # 05:30
+    'morning': 26400,  # 07:20
     'afternoon': 43200,  # 12:00
-    'evening': 72000,  # 20:00
-    'night': 7200  # 02:00
+    'evening': 66600,  # 18:30
 }
 
 
@@ -20,8 +19,8 @@ def change_mission_time(misFile, fn, descr, time):
     elif descr == 'afternoon':
         next_time = 'evening'
     elif descr == 'evening':
-        next_time = 'night'
-    elif descr == 'night':
+    #     next_time = 'night'
+    # elif descr == 'night':
         next_time = 'morning'
 
     next_file = "{0}_{1}.miz".format(fn[:-4], next_time)
