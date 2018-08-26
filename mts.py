@@ -1,5 +1,6 @@
 #!/usr/local/bin/python3
 import shutil
+import pprint
 import zipfile
 import os
 import sys
@@ -118,7 +119,7 @@ def handle_mission(fn, dest, icao):
 
                 wx['temp'] = obs.temp.value()
                 wx['wind_speed'] = obs.wind_speed.value()
-                wx['wind_dir'] = obs.wind_dir.value()
+                wx['wind_dir'] = (obs.wind_dir.value() + 180) % 360
                 if obs.sky and obs.sky[0] != 'CLR' and obs.sky[0][0] != 'NCD':
                     wx['cloud_base'] = obs.sky[0][1].value()
                     wx['cloud_height'] = 1800
@@ -132,6 +133,8 @@ def handle_mission(fn, dest, icao):
                 wx['pressure'] = obs.press.value() / 1.33
 
                 print(obs.string())
+
+                pprint.pprint(wx)
             except Exception as e:
                 print(e)
                 print("FAILED TO GET DYNAMIC WEATHER, FALLING BACK TO DEFAULTS")
