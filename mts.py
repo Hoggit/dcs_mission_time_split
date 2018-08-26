@@ -103,10 +103,11 @@ def handle_mission(fn, dest, icao):
             "pressure": 760
         }
 
-        wx_request = requests.get("https://avwx.rest/api/metar/" + icao)
+        wx_request = requests.get("https://avwx.rest/api/metar/" + icao.upper())
         if wx_request.status_code == 200:
             wx_json = wx_request.json()
             obs = Metar.Metar(wx_json['Raw-Report'])
+            #obs = Metar.Metar("URKK 211400Z 33004MPS 290V360 CAVOK 30/18 Q1011 R23L/CLRD70 NOSIG RMK QFE755")
             precip = 0
             if obs.weather:
                 if obs.weather[0][2] == 'RA':
@@ -115,9 +116,9 @@ def handle_mission(fn, dest, icao):
                     precip = 2
 
             wx['temp'] = obs.temp.value()
-            wx['wind_speed'] = obs.wind_speed.value() * 2
+            wx['wind_speed'] = obs.wind_speed.value()
             wx['wind_dir'] = obs.wind_dir.value()
-            if obs.sky and obs.sky[0] != 'CLR':
+            if obs.sky and obs.sky[0] != 'CLR' and obs.sky[0][0] != 'NCD':
                 wx['cloud_base'] = obs.sky[0][1].value()
                 wx['cloud_height'] = 1800
                 wx['cloud_density'] = cloud_map[obs.sky[0][0]]
@@ -129,6 +130,10 @@ def handle_mission(fn, dest, icao):
             wx['precip'] = precip
             wx['pressure'] = obs.press.value() / 1.33
 
+            print(obs.string())
+        else:
+            print("FAILED TO GET DYNAMIC WEATHER, FALLING BACK TO DEFAULTS")
+
         new_files = []
         for descr, time in times.items():
             new_mis = change_mission_data(misfile, fn, descr, time, wx)
@@ -137,6 +142,8 @@ def handle_mission(fn, dest, icao):
                 fn[:-4],
                 descr
             )
+            print(targetdir)
+            print(new_file)
             shutil.copytree(targetdir, new_file)
             shutil.move(new_mis, os.path.join(new_file, "mission"))
             shutil.make_archive(new_file, 'zip', new_file)
@@ -161,5 +168,4 @@ def handle_mission(fn, dest, icao):
 file = sys.argv[1]
 icao = sys.argv[2]
 dest = sys.argv[3] or None
-
 handle_mission(file, dest, icao)
