@@ -150,7 +150,6 @@ def handle_mission(fn, dest, icao, fallback):
                     wx['cloud_base'] = obs.sky[0][1].value()
                     wx['cloud_height'] = 1800
                     wx['cloud_density'] = cloud_map[obs.sky[0][0]]
-                    print("CLOUD COVERAGE IS {}".format(cloud_map[obs.sky[0][0]]))
                 else:
                     wx['cloud_base'] = 1800
                     wx['cloud_height'] = 1800
@@ -158,9 +157,7 @@ def handle_mission(fn, dest, icao, fallback):
                 wx['precip'] = precip
                 wx['pressure'] = obs.press.value() / 1.33
 
-                print(obs.string())
-
-                pprint.pprint(wx)
+                print(obs.code)
             except Exception as e:
                 print(e)
                 print("FAILED TO GET DYNAMIC WEATHER")
@@ -178,8 +175,6 @@ def handle_mission(fn, dest, icao, fallback):
                 fn[:-4],
                 descr
             )
-            print(targetdir)
-            print(new_file)
             shutil.copytree(targetdir, new_file)
             shutil.move(new_mis, os.path.join(new_file, "mission"))
             shutil.make_archive(new_file, 'zip', new_file)
@@ -194,7 +189,10 @@ def handle_mission(fn, dest, icao, fallback):
         for new_file in new_files:
             filename = new_file+".zip"
             print("new_file: " + new_file)
-            shutil.move(filename, dest + "/" + os.path.basename(new_file)+".miz")
+            try:
+                shutil.move(filename, dest + "/" + os.path.basename(new_file)+".miz")
+            except:
+                print("Couldn't move {} to {}. Skipping".format(filename, os.path.basename(new_file)+".miz"))
             print("Cleaning up zip: " + new_file)
             shutil.rmtree(new_file)
 
