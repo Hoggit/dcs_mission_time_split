@@ -7,6 +7,7 @@ import sys
 import re
 import requests
 import datetime
+import argparse
 from metar import Metar
 
 times = {
@@ -14,6 +15,14 @@ times = {
     'afternoon': 43200,  # 12:00
     'evening': 66600,  # 18:30
 }
+
+parser = argparse.ArgumentParser(description="Split your DCS mission into different times, with weather from avwx")
+parser.add_argument('-m', '--mission', required=True, help="The mission you want to split")
+parser.add_argument('-i', '--icao', help="The ICAO designation of the airport to get weather for")
+parser.add_argument('-f', '--fall-back', action='store_true',
+                    help="Add this if you want to fall back to a default weather if no ICAO is found.\
+                        If not specified, and no ICAO weather is found, we'll exit without doing anything")
+parser.add_argument('-o', '--output', default=None, help="The directory to output the split missions to")
 
 def change_mission_data(misFile, fn, descr, time, wx):
     today = datetime.datetime.now()
@@ -183,7 +192,8 @@ def handle_mission(fn, dest, icao):
         shutil.rmtree(targetdir)
 
 
-file = sys.argv[1]
-icao = sys.argv[2]
-dest = sys.argv[3] or None
+args = parser.parse_args()
+file = args.mission
+icao = args.icao
+dest = args.output
 handle_mission(file, dest, icao)
