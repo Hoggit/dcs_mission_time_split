@@ -146,7 +146,7 @@ def handle_mission(fn, dest, icao, fallback):
                 wx['temp'] = obs.temp.value()
                 wx['wind_speed'] = obs.wind_speed.value()
                 wx['wind_dir'] = (obs.wind_dir.value() + 180) % 360
-                if obs.sky and obs.sky[0] != 'CLR' and obs.sky[0][0] != 'NCD':
+                if obs.sky and obs.sky[0] != 'CLR' and obs.sky[0][0] != 'NCD' and obs.sky[0][0] != 'NSC':
                     wx['cloud_base'] = obs.sky[0][1].value()
                     wx['cloud_height'] = 1800
                     wx['cloud_density'] = cloud_map[obs.sky[0][0]]
