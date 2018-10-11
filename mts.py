@@ -129,39 +129,43 @@ def handle_mission(fn, dest, icao, fallback):
             "precip": 0,
             "pressure": 760
         }
+        try:
+            wx_request = requests.get("https://avwx.rest/api/metar/" + icao.upper())
+            if wx_request.status_code == 200:
+                try:
+                    wx_json = wx_request.json()
+                    obs = Metar.Metar(wx_json['Raw-Report'])
+                    #obs = Metar.Metar("URKK 211400Z 33004MPS 290V360 CAVOK 30/18 Q1011 R23L/CLRD70 NOSIG RMK QFE755")
+                    precip = 0
+                    if obs.weather:
+                        if obs.weather[0][2] == 'RA':
+                            precip = 1
+                        if obs.weather[0][1] == 'TS':
+                            precip = 2
 
-        wx_request = requests.get("https://avwx.rest/api/metar/" + icao.upper())
-        if wx_request.status_code == 200:
-            try:
-                wx_json = wx_request.json()
-                obs = Metar.Metar(wx_json['Raw-Report'])
-                #obs = Metar.Metar("URKK 211400Z 33004MPS 290V360 CAVOK 30/18 Q1011 R23L/CLRD70 NOSIG RMK QFE755")
-                precip = 0
-                if obs.weather:
-                    if obs.weather[0][2] == 'RA':
-                        precip = 1
-                    if obs.weather[0][1] == 'TS':
-                        precip = 2
+                    wx['temp'] = obs.temp.value()
+                    wx['wind_speed'] = obs.wind_speed.value()
+                    wx['wind_dir'] = (obs.wind_dir.value() + 180) % 360
+                    if obs.sky and obs.sky[0] != 'CLR' and obs.sky[0][0] != 'NCD' and obs.sky[0][0] != 'NSC':
+                        wx['cloud_base'] = obs.sky[0][1].value()
+                        wx['cloud_height'] = 1800
+                        wx['cloud_density'] = cloud_map[obs.sky[0][0]]
+                    else:
+                        wx['cloud_base'] = 1800
+                        wx['cloud_height'] = 1800
+                        wx['cloud_density'] = 0
+                    wx['precip'] = precip
+                    wx['pressure'] = obs.press.value() / 1.33
 
-                wx['temp'] = obs.temp.value()
-                wx['wind_speed'] = obs.wind_speed.value()
-                wx['wind_dir'] = (obs.wind_dir.value() + 180) % 360
-                if obs.sky and obs.sky[0] != 'CLR' and obs.sky[0][0] != 'NCD' and obs.sky[0][0] != 'NSC':
-                    wx['cloud_base'] = obs.sky[0][1].value()
-                    wx['cloud_height'] = 1800
-                    wx['cloud_density'] = cloud_map[obs.sky[0][0]]
-                else:
-                    wx['cloud_base'] = 1800
-                    wx['cloud_height'] = 1800
-                    wx['cloud_density'] = 0
-                wx['precip'] = precip
-                wx['pressure'] = obs.press.value() / 1.33
+                    print(obs.code)
+                except Exception as e:
+                    print(e)
+                    print("FAILED TO GET DYNAMIC WEATHER")
+                    check_fallback()
+        except:
+            print("Could not contact avwx for weather.")
+            check_fallback()
 
-                print(obs.code)
-            except Exception as e:
-                print(e)
-                print("FAILED TO GET DYNAMIC WEATHER")
-                check_fallback()
 
         else:
             print("FAILED TO GET DYNAMIC WEATHER. METAR API UNAVAILABLE")
