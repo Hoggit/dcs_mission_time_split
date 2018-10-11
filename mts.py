@@ -195,10 +195,14 @@ def handle_mission(fn, dest, icao, fallback):
             filename = new_file+".zip"
             print("new_file: " + new_file)
             shutil.move(filename, dest + "/" + os.path.basename(new_file)+".miz")
+            print("Cleaning up zip: " + new_file)
             shutil.rmtree(new_file)
 
         #Clean up tmp dir.
+        print("Cleaning up " + targetdir)
         shutil.rmtree(targetdir)
+        print("Cleaning up " + new_dir)
+        shutil.rmtree(new_dir)
 
 
 args = parser.parse_args()
