@@ -6,6 +6,7 @@ import os
 import sys
 import re
 import requests
+import datetime
 from metar import Metar
 
 times = {
@@ -14,9 +15,12 @@ times = {
     'evening': 66600,  # 18:30
 }
 
-
 def change_mission_data(misFile, fn, descr, time, wx):
-    rgx = re.compile("^\s{4}\[\"start_time")
+    today = datetime.datetime.now()
+    start_time_regex = re.compile("^\s{4}\[\"start_time")
+    date_regex_day = re.compile("^\s+\[\"Day")
+    date_regex_month = re.compile("^\s+\[\"Month")
+    date_regex_year = re.compile("^\s+\[\"Year")
     wind_rgx = re.compile("^\s{16}\[\"speed")
     wind_dir_rgx = re.compile("^\s{16}\[\"dir")
     if descr == 'morning':
@@ -59,8 +63,14 @@ def change_mission_data(misFile, fn, descr, time, wx):
                     line = '                ["speed"] = {},\n'.format(wx['wind_speed'])
                 if wind_dir_rgx.match(line):
                     line = '                ["dir"] = {},\n'.format(wx['wind_dir'])
-                if rgx.match(line):
+                if start_time_regex.match(line):
                     line = "    [\"start_time\"] = {},\n".format(time)
+                if date_regex_year.match(line):
+                    line = "         [\"Year\"] = {},\n".format(today.year)
+                if date_regex_day.match(line):
+                    line = "         [\"Day\"] = {},\n".format(today.day)
+                if date_regex_month.match(line):
+                    line = "         [\"Month\"] = {},\n".format(today.month)
                 tf.write(line)
 
     return this_file
