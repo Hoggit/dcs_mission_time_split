@@ -19,10 +19,10 @@ times = {
 parser = argparse.ArgumentParser(description="Split your DCS mission into different times, with weather from avwx")
 parser.add_argument('-m', '--mission', required=True, help="The mission you want to split")
 parser.add_argument('-i', '--icao', help="The ICAO designation of the airport to get weather for")
-parser.add_argument('-f', '--fall-back', action='store_true',
+parser.add_argument('-f', '--fallback', action='store_true',
                     help="Add this if you want to fall back to a default weather if no ICAO is found.\
                         If not specified, and no ICAO weather is found, we'll exit without doing anything")
-parser.add_argument('-o', '--output', default=None, help="The directory to output the split missions to")
+parser.add_argument('-o', '--output', default=None, help="The directory to output the split missions to. Defaults to the current directory.")
 
 def change_mission_data(misFile, fn, descr, time, wx):
     today = datetime.datetime.now()
@@ -85,7 +85,7 @@ def change_mission_data(misFile, fn, descr, time, wx):
     return this_file
 
 
-def handle_mission(fn, dest, icao):
+def handle_mission(fn, dest, icao, fallback):
     if os.path.exists(fn):
         path = os.path.abspath(fn)
         print("path: {}".format(path))
@@ -157,9 +157,15 @@ def handle_mission(fn, dest, icao):
             except Exception as e:
                 print(e)
                 print("FAILED TO GET DYNAMIC WEATHER, FALLING BACK TO DEFAULTS")
+                if not fallback:
+                    print("Fallback flat not specified. Quitting.")
+                    sys.exit(1)
 
         else:
             print("FAILED TO GET DYNAMIC WEATHER, FALLING BACK TO DEFAULTS - METAR API unavailable")
+            if not fallback:
+                print("Fallback flag not specified. Quitting.")
+                sys.exit(1)
 
         new_files = []
         for descr, time in times.items():
@@ -196,4 +202,5 @@ args = parser.parse_args()
 file = args.mission
 icao = args.icao
 dest = args.output
-handle_mission(file, dest, icao)
+fallback = args.fallback
+handle_mission(file, dest, icao, fallback)
