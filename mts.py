@@ -86,6 +86,13 @@ def change_mission_data(misFile, fn, descr, time, wx):
 
 
 def handle_mission(fn, dest, icao, fallback):
+    def check_fallback():
+        if not fallback:
+            print("Fallback flag not specified, quitting.")
+            sys.exit(1)
+        else:
+            print("Falling back to defaults")
+
     if os.path.exists(fn):
         path = os.path.abspath(fn)
         print("path: {}".format(path))
@@ -156,16 +163,12 @@ def handle_mission(fn, dest, icao, fallback):
                 pprint.pprint(wx)
             except Exception as e:
                 print(e)
-                print("FAILED TO GET DYNAMIC WEATHER, FALLING BACK TO DEFAULTS")
-                if not fallback:
-                    print("Fallback flat not specified. Quitting.")
-                    sys.exit(1)
+                print("FAILED TO GET DYNAMIC WEATHER")
+                check_fallback()
 
         else:
-            print("FAILED TO GET DYNAMIC WEATHER, FALLING BACK TO DEFAULTS - METAR API unavailable")
-            if not fallback:
-                print("Fallback flag not specified. Quitting.")
-                sys.exit(1)
+            print("FAILED TO GET DYNAMIC WEATHER. METAR API UNAVAILABLE")
+            check_fallback()
 
         new_files = []
         for descr, time in times.items():
