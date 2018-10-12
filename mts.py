@@ -23,6 +23,17 @@ parser.add_argument('-f', '--fallback', action='store_true',
                     help="Add this if you want to fall back to a default weather if no ICAO is found.\
                         If not specified, and no ICAO weather is found, we'll exit without doing anything")
 parser.add_argument('-o', '--output', default=None, help="The directory to output the split missions to. Defaults to the current directory.")
+parser.add_argument('-d', '--debug', action='store_true', help="More debug output")
+
+args = parser.parse_args()
+is_debug = args.debug
+
+def debug(str):
+    if is_debug:
+        log(str)
+
+def log(str):
+    print(str)
 
 def change_mission_data(misFile, fn, descr, time, wx):
     today = datetime.datetime.now()
@@ -95,17 +106,17 @@ def handle_mission(fn, dest, icao, fallback):
 
     if os.path.exists(fn):
         path = os.path.abspath(fn)
-        print("path: {}".format(path))
+        debug("path: {}".format(path))
         basedir = os.path.dirname(path)
-        print("basedir: {}".format(basedir))
+        debug("basedir: {}".format(basedir))
         targetdir = "{}/.tmp".format(basedir)
-        print("targetdir: {}".format(targetdir))
-        print("Making tmp dir: {}".format(targetdir))
+        debug("targetdir: {}".format(targetdir))
+        debug("Making tmp dir: {}".format(targetdir))
         if os.path.exists(targetdir):
             shutil.rmtree(targetdir)
         os.makedirs(targetdir)
 
-        print("Extracting zip: {}".format(fn))
+        debug("Extracting zip: {}".format(fn))
         zip_ref = zipfile.ZipFile(fn, 'r')
         zip_ref.extractall(targetdir)
 
@@ -172,42 +183,52 @@ def handle_mission(fn, dest, icao, fallback):
         new_files = []
         for descr, time in times.items():
             new_mis = change_mission_data(misfile, fn, descr, time, wx)
+            debug("basedir: " + basedir)
+            debug("fn: " + fn[:-4])
+            debug("descr: " + descr)
             new_file = "{}/{}_{}".format(
                 basedir,
                 fn[:-4],
                 descr
             )
+            debug("targetdir " + targetdir)
+            debug("new_file" + new_file)
             shutil.copytree(targetdir, new_file)
             shutil.move(new_mis, os.path.join(new_file, "mission"))
             shutil.make_archive(new_file, 'zip', new_file)
             new_files.append(new_file)
 
         new_dir = "{}/{}".format(basedir, fn)[:-4]
-        print("New dir: " + new_dir)
+        debug("New dir: " + new_dir)
         if os.path.exists(new_dir) and os.path.isdir(new_dir):
             shutil.rmtree(new_dir)
         os.makedirs(new_dir)
 
         for new_file in new_files:
             filename = new_file+".zip"
-            print("new_file: " + new_file)
+            debug("new_file: " + new_file)
+            debug("dest: " + dest)
             try:
-                shutil.move(filename, dest + "/" + os.path.basename(new_file)+".miz")
-            except:
-                print("Couldn't move {} to {}. Skipping".format(filename, os.path.basename(new_file)+".miz"))
-            print("Cleaning up zip: " + new_file)
+                shutil.move(filename, os.path.join(dest, os.path.basename(new_file)+".miz"))
+                print("Created {}".format(os.path.basename(new_file)+".miz"))
+            except Exception as e:
+                print("Couldn't move {} to {} . Skipping".format(filename, os.path.join(dest, os.path.basename(new_file)+".miz")))
+                print(e)
+            debug("Cleaning up zip: " + new_file)
             shutil.rmtree(new_file)
 
         #Clean up tmp dir.
-        print("Cleaning up " + targetdir)
+        debug("Cleaning up " + targetdir)
         shutil.rmtree(targetdir)
-        print("Cleaning up " + new_dir)
+        debug("Cleaning up " + new_dir)
         shutil.rmtree(new_dir)
+    else:
+        print("can't find {}".format(fn))
 
-
-args = parser.parse_args()
 file = args.mission
 icao = args.icao
 dest = args.output
 fallback = args.fallback
+debug("args: " + str(args))
 handle_mission(file, dest, icao, fallback)
+print("Done.")
