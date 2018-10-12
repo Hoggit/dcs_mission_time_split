@@ -162,13 +162,11 @@ def handle_mission(fn, dest, icao, fallback):
                     print(e)
                     print("FAILED TO GET DYNAMIC WEATHER")
                     check_fallback()
+            else:
+                print("FAILED TO GET DYNAMIC WEATHER. METAR API UNAVAILABLE")
+                check_fallback()
         except:
             print("Could not contact avwx for weather.")
-            check_fallback()
-
-
-        else:
-            print("FAILED TO GET DYNAMIC WEATHER. METAR API UNAVAILABLE")
             check_fallback()
 
         new_files = []
