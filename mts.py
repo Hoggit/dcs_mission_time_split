@@ -103,6 +103,7 @@ def cloud_map(sky):
     Incoming Format ('BKN', <distance>, <something>)
     Outgoing Format ( 8, distance.value())
 
+    If <distance> is Nil or falsey, we replace it with zero.
     The Outgoing format looks up the cloud density in the cloud_map var to determine the thickness between 0-10.
     """
     cloud_map = {
@@ -114,14 +115,27 @@ def cloud_map(sky):
         'BKN': 8,
         'OVC': 10
     }
-    return list(map(lambda s: (cloud_map[s[0]], s[1].value()), sky))
+    return list(map(lambda s: (cloud_map[s[0]], s[1].value() if s[1] else 0), sky))
 
 def thickest_clouds(cloud_thickness_and_base_list):
+    """
+    Given a list of tuples indicated cloud thickness and base, return the tuple
+    with the thickest clouds
+    """
     return max(cloud_thickness_and_base_list, key=lambda c: c[0])
 
 def get_cloud_detail(sky):
+    """
+    Pull the thickest clouds from the Metar's sky list and return a dictionary
+    with the following keys:
+    "thickness": The cloud's thickness from 0-10 (for DCS).
+    "base": the base height of the clouds
+    """
+    debug("Getting cloud details")
     clouds = cloud_map(sky)
+    debug("There are {} clouds listed in the Metar".format(len(clouds)))
     thickest = thickest_clouds(clouds)
+    debug("Found thickest clouds: thick: {} -- base {}".format(thickest[0], thickest[1]))
     return {
             "thickness": thickest[0],
             "base": thickest[1]
