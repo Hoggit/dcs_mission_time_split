@@ -95,6 +95,38 @@ def change_mission_data(misFile, fn, descr, time, wx):
 
     return this_file
 
+def cloud_map(sky):
+    """
+    Takes a list of tuples indicating cloud cover, generated from the Metar egg, and
+    returns a list of tuples translated into DCS Cloud Cover and base height.
+
+    Incoming Format ('BKN', <distance>, <something>)
+    Outgoing Format ( 8, distance.value())
+
+    The Outgoing format looks up the cloud density in the cloud_map var to determine the thickness between 0-10.
+    """
+    cloud_map = {
+        'NSC': 0,
+        'NCD': 0,
+        'CLR': 0,
+        'FEW': 2,
+        'SCT': 6,
+        'BKN': 8,
+        'OVC': 10
+    }
+    return list(map(lambda s: (cloud_map[s[0]], s[1].value()), sky))
+
+def thickest_clouds(cloud_thickness_and_base_list):
+    return max(cloud_thickness_and_base_list, key=lambda c: c[0])
+
+def get_cloud_detail(sky):
+    clouds = cloud_map(sky)
+    thickest = thickest_clouds(clouds)
+    return {
+            "thickness": thickest[0],
+            "base": thickest[1]
+            }
+
 
 def handle_mission(fn, dest, icao, fallback):
     def check_fallback():
@@ -123,12 +155,6 @@ def handle_mission(fn, dest, icao, fallback):
         misfile = "{}/mission".format(targetdir)
 
         # Get WX
-        cloud_map = {
-            'FEW': 2,
-            'SCT': 6,
-            'BKN': 8,
-            'OVC': 10
-        }
 
         wx = {
             "temp": 23,
@@ -157,10 +183,11 @@ def handle_mission(fn, dest, icao, fallback):
                     wx['temp'] = obs.temp.value()
                     wx['wind_speed'] = obs.wind_speed.value()
                     wx['wind_dir'] = (obs.wind_dir.value() + 180) % 360
-                    if obs.sky and obs.sky[0] != 'CLR' and obs.sky[0][0] != 'NCD' and obs.sky[0][0] != 'NSC':
-                        wx['cloud_base'] = obs.sky[0][1].value()
+                    if obs.sky:
+                        clouds = get_cloud_detail(obs.sky)
+                        wx['cloud_base'] = clouds["base"]
                         wx['cloud_height'] = 1800
-                        wx['cloud_density'] = cloud_map[obs.sky[0][0]]
+                        wx['cloud_density'] = clouds["thickness"]
                     else:
                         wx['cloud_base'] = 1800
                         wx['cloud_height'] = 1800
