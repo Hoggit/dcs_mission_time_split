@@ -19,6 +19,7 @@ times = {
 parser = argparse.ArgumentParser(description="Split your DCS mission into different times, with weather from avwx")
 parser.add_argument('-m', '--mission', required=True, help="The mission you want to split")
 parser.add_argument('-i', '--icao', help="The ICAO designation of the airport to get weather for")
+parser.add_argument('--metarout', help="Output the METAR string to this file. Ignored if not set")
 parser.add_argument('-f', '--fallback', action='store_true',
                     help="Add this if you want to fall back to a default weather if no ICAO is found.\
                         If not specified, and no ICAO weather is found, we'll exit without doing anything")
@@ -209,7 +210,19 @@ def handle_mission(fn, dest, icao, fallback):
                     wx['precip'] = precip
                     wx['pressure'] = obs.press.value() / 1.33
 
+                    print("----------------")
                     print(obs.code)
+                    print("----------------")
+                    if len(args.metarout) > 0:
+                        metarfile = args.metarout
+                        debug("metar outfile arg provided: {}".format(metarfile))
+                        abs_path = os.path.abspath(metarfile)
+                        path = os.path.dirname(abs_path)
+                        print("path {}".format(path))
+                        if not os.path.exists(path):
+                            os.makedirs(path)
+                        with open(abs_path, 'w', encoding='utf-8') as mf:
+                            mf.write(obs.code)
                 except Exception as e:
                     print(e)
                     print("FAILED TO GET DYNAMIC WEATHER")
