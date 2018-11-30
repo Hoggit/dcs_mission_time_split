@@ -13,7 +13,7 @@ from metar import Metar
 times = {
     'morning': 26400,  # 07:20
     'afternoon': 43200,  # 12:00
-    'evening': 66600,  # 18:30
+    'evening': 59400,  # 16:30
 }
 
 parser = argparse.ArgumentParser(description="Split your DCS mission into different times, with weather from avwx")
