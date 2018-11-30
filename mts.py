@@ -213,7 +213,7 @@ def handle_mission(fn, dest, icao, fallback):
                     print("----------------")
                     print(obs.code)
                     print("----------------")
-                    if len(args.metarout) > 0:
+                    if args.metarout:
                         metarfile = args.metarout
                         debug("metar outfile arg provided: {}".format(metarfile))
                         abs_path = os.path.abspath(metarfile)
