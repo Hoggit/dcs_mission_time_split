@@ -1,5 +1,6 @@
 #!/usr/local/bin/python3
 import shutil
+import ntpath
 import pprint
 import zipfile
 import os
@@ -8,6 +9,7 @@ import re
 import requests
 import datetime
 import argparse
+import subprocess
 from metar import Metar
 
 times = {
@@ -23,8 +25,11 @@ parser.add_argument('--metarout', help="Output the METAR string to this file. Ig
 parser.add_argument('-f', '--fallback', action='store_true',
                     help="Add this if you want to fall back to a default weather if no ICAO is found.\
                         If not specified, and no ICAO weather is found, we'll exit without doing anything")
-parser.add_argument('-o', '--output', default=None, help="The directory to output the split missions to. Defaults to the current directory.")
+parser.add_argument('-o', '--output', default='.', help="The directory to output the split missions to. Defaults to the current directory.")
 parser.add_argument('-d', '--debug', action='store_true', help="More debug output")
+parser.add_argument('-D', '--dbpath', required=True, help="Location of the DCS Install Scripts/Database folder")
+parser.add_argument('-c', '--weapon_config', required=True, help="location of stores config ini file")
+parser.add_argument('-w', '--wherehouse', required=True, help="location of the Wherehouse folder")
 
 args = parser.parse_args()
 is_debug = args.debug
@@ -143,7 +148,7 @@ def get_cloud_detail(sky):
             }
 
 
-def handle_mission(fn, dest, icao, fallback):
+def handle_mission(fn, dest, icao, fallback, wherehouse, weap_config, dbpath):
     def check_fallback():
         if not fallback:
             print("Fallback flag not specified, quitting.")
@@ -168,9 +173,12 @@ def handle_mission(fn, dest, icao, fallback):
         zip_ref.extractall(targetdir)
 
         misfile = "{}/mission".format(targetdir)
+        warehousesfile = "{}/warehouses".format(targetdir)
+
+        # build warehouses
+        subprocess.call(["lua", wherehouse, dbpath, "update", warehousesfile, weap_config, warehousesfile])
 
         # Get WX
-
         wx = {
             "temp": 23,
             "wind_speed": 4,
@@ -242,7 +250,7 @@ def handle_mission(fn, dest, icao, fallback):
             debug("descr: " + descr)
             new_file = "{}/{}_{}".format(
                 basedir,
-                fn[:-4],
+                ntpath.basename(fn)[:-4],
                 descr
             )
             debug("targetdir " + targetdir)
@@ -252,7 +260,7 @@ def handle_mission(fn, dest, icao, fallback):
             shutil.make_archive(new_file, 'zip', new_file)
             new_files.append(new_file)
 
-        new_dir = "{}/{}".format(basedir, fn)[:-4]
+        new_dir = "{}/{}".format(basedir, ntpath.basename(fn))[:-4]
         debug("New dir: " + new_dir)
         if os.path.exists(new_dir) and os.path.isdir(new_dir):
             shutil.rmtree(new_dir)
@@ -283,6 +291,10 @@ file = args.mission
 icao = args.icao
 dest = args.output
 fallback = args.fallback
+wherehouse = "{0}/warehousing.lua".format(args.wherehouse)
+weap_config = args.weapon_config
+dbpath = args.dbpath
+
 debug("args: " + str(args))
-handle_mission(file, dest, icao, fallback)
+handle_mission(file, dest, icao, fallback, wherehouse, weap_config, dbpath)
 print("Done.")
