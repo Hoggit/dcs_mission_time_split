@@ -201,8 +201,8 @@ def handle_mission(fn, dest, icao, fallback):
                     if obs.sky:
                         clouds = get_cloud_detail(obs.sky)
                         wx['cloud_base'] = clouds["base"] * 0.3048 #METAR is Feet, Miz file expects meters
-                        wx['cloud_height'] = 1800
-                        wx['cloud_density'] = clouds["thickness"] * 0.3048 #METAR is Feet, Miz file expects meters
+                        wx['cloud_height'] = 1800  * 0.3048 #METAR is Feet, Miz file expects meters
+                        wx['cloud_density'] = clouds["thickness"]
                     else:
                         wx['cloud_base'] = 1800
                         wx['cloud_height'] = 1800
