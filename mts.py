@@ -230,7 +230,7 @@ def handle_mission(fn, dest, icao, fallback):
             else:
                 print("FAILED TO GET DYNAMIC WEATHER. METAR API UNAVAILABLE")
                 check_fallback()
-        except e:
+        except:
             print("Could not contact avwx for weather.")
             check_fallback()
 
@@ -263,7 +263,6 @@ def handle_mission(fn, dest, icao, fallback):
             debug("new_file: " + new_file)
             debug("dest: " + dest)
             try:
-                print (os.path.join(dest, os.path.basename(new_file)+".miz"));
                 shutil.move(filename, os.path.join(dest, os.path.basename(new_file)+".miz"))
                 print("Created {}".format(os.path.basename(new_file)+".miz"))
             except Exception as e:
