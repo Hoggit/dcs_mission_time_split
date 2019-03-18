@@ -200,9 +200,9 @@ def handle_mission(fn, dest, icao, fallback):
                     wx['wind_dir'] = (obs.wind_dir.value() + 180) % 360
                     if obs.sky:
                         clouds = get_cloud_detail(obs.sky)
-                        wx['cloud_base'] = clouds["base"]
+                        wx['cloud_base'] = clouds["base"] * 0.3048 #METAR is Feet, Miz file expects meters
                         wx['cloud_height'] = 1800
-                        wx['cloud_density'] = clouds["thickness"]
+                        wx['cloud_density'] = clouds["thickness"] * 0.3048 #METAR is Feet, Miz file expects meters
                     else:
                         wx['cloud_base'] = 1800
                         wx['cloud_height'] = 1800
